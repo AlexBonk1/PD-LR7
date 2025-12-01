@@ -64,6 +64,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Effects/abstracteffect.h
 
         Effects/EffectsBuilder.h
+        fileinfo.h fileinfo.cpp
 
         )
 else()

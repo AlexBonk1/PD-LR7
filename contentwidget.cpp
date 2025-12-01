@@ -1,6 +1,5 @@
 #include "contentwidget.h"
 #include<QPushButton>
-#include<QLineEdit>
 #include<QSpacerItem>
 
 static int brightnessStep = 2;
@@ -22,7 +21,8 @@ void ContentWidget::setupUi()
     header->setLayout(new QHBoxLayout(header));
     QPushButton* scalePlusBut = new QPushButton("+",this);
     connect(scalePlusBut, &QPushButton::clicked, actionManager->scalePlusAction(), &QAction::trigger);
-    QLineEdit* percentages = new QLineEdit("100%", this);
+    percentages = new QLineEdit("100%", this);
+    percentages->setReadOnly(true);
     QPushButton* scaleMinusBut = new QPushButton("-",this);
     connect(scaleMinusBut, &QPushButton::clicked, actionManager->scaleMinusAction(), &QAction::trigger);
     QSpacerItem* spacer = new QSpacerItem(1, 1, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -64,12 +64,6 @@ void ContentWidget::setupConnections()
     connect(actionManager->scaleMinusAction(),&QAction::triggered,this,[this](){
         qDebug()<<"scale-";
         scaleNegative();
-    });
-    connect(actionManager->rotateLeftAction(),&QAction::triggered,this,[this](){
-        qDebug()<<"Rotate left not implemented yet";
-    });
-    connect(actionManager->rotateRightAction(),&QAction::triggered,this,[this](){
-        qDebug()<<"Rotate right not implemented yet";
     });
 
 }
@@ -123,6 +117,7 @@ void ContentWidget::scaleImage(double ratio)
     qDebug()<<pixmap.size();
     label->setPixmap(pixmap);
     label->adjustSize();
+    percentages->setText(QString("%0 %").arg((int)(ratio*100)));
 }
 
 void ContentWidget::setScale()

@@ -21,6 +21,8 @@ public:
     void addEffect(QString effectName);
     void removeEffect();
     void zeroScrollers();
+    void deleteFirstEffect();
+    void deleteAllEffects();
 private:
     void setupUi();
     void setupConnect();

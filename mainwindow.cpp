@@ -51,7 +51,7 @@ void MainWindow::setupConnectors()
         QString filePath = QFileDialog::getSaveFileName(
             this,
             tr("Save picture as"),
-            QString(ifc->getLastDir()+ "/" + ifc->getFileName()),
+            QString(ifc->getCurrentPath()),
             tr("Images (*.png *.jpg,*.bmp,*.gif)")
         );
         qDebug()<<filePath;
@@ -79,8 +79,8 @@ void MainWindow::loadImage()
     QString filePath = QFileDialog::getOpenFileName(
         this,
         tr("Open File"),
-        ifc->getLastDir(),
-        tr("Images (*.png *.jpg,*.bmp,*.gif)")
+        ifc->getCurrentPath(),
+        "Images (*.png *.jpg *jpeg *.bmp *.gif)"
     );
     if(filePath == ""){
         qDebug()<<"Image not loaded: Escape Key pressed!";
@@ -143,7 +143,6 @@ void MainWindow::setupSubscribers()
 {
     connect(ifc,&ImageEffectsController::imageChanged,[this](){
         contentWidget->updateImage(ifc->getImage());
-        scrollersWidget->updateImage(ifc->getImage());
     });
     connect(scrollersWidget,&ScrollersWidget::brightnessChanged,ifc,&ImageEffectsController::setOpacity);
     connect(scrollersWidget,&ScrollersWidget::redChanged,ifc,&ImageEffectsController::setRed);
@@ -151,6 +150,7 @@ void MainWindow::setupSubscribers()
     connect(scrollersWidget,&ScrollersWidget::blueChanged,ifc,&ImageEffectsController::setBlue);
 
     connect(ifc,&ImageEffectsController::addEffect,scrollersWidget,&ScrollersWidget::addEffect);
+    connect(ifc,&ImageEffectsController::deleteFirstInChain,scrollersWidget,&ScrollersWidget::deleteFirstEffect);
     connect(ifc,&ImageEffectsController::popEffect,scrollersWidget,&ScrollersWidget::removeEffect);
 
     connect(actionManager->undoAction(),&QAction::triggered,ifc,&ImageEffectsController::undo);
@@ -160,6 +160,11 @@ void MainWindow::setupSubscribers()
     });
 
     connect(ifc,&ImageEffectsController::zeroScrollers,scrollersWidget,&ScrollersWidget::zeroScrollers);
+
+    connect(actionManager->rotateLeftAction(),&QAction::triggered,ifc,&ImageEffectsController::rotateLeft);
+    connect(actionManager->rotateRightAction(),&QAction::triggered,ifc,&ImageEffectsController::rotateRight);
+
+    connect(ifc, &ImageEffectsController::deleteAllInChain,scrollersWidget,&ScrollersWidget::deleteAllEffects);
 
 }
 

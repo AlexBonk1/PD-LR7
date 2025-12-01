@@ -1,23 +1,16 @@
 #include "imageeffectscontroller.h"
 #include "Effects/EffectsBuilder.h"
+#include<memory>
 
-
-///ЧТО НУЖНО СДЕЛАТЬ
-/// 2) ГРАДАЦИЯ СЕРОГО - ГРАДАЦИЯ СЕРОГО ОТКЛЮЧАЕТ КАНАЛЫ
-/// 3) БЛЮР
-/// СОХРАНЕНИЕ КАРТИНКИ
-/// СОХРАНИТЬ КАРТИНКУ КАК
 
 extern "C" void AdjustColors(uchar* array, RGBA*rgba, int size);
-// extern "C" void Blur(uchar*oldArray,uchar*copyArray,int row,int col);
 
 extern "C" void GrayScale(uchar*oldArray,uchar*copyArray,int row,int col);
 extern "C" void Blur(uchar*oldArray,uchar*copyArray,int row,int col);
 extern "C" void Inversion(uchar*oldArray,uchar*copyArray,int row,int col);
 
-void Aboba(uchar*a = nullptr,uchar*b =nullptr,int ai=0,int bi =0){
-    qDebug()<<"Aboba";
-}
+extern "C" void RotateLeft(uchar*picture,uchar*copyArray,int row, int col);
+extern "C" void RotateRight(uchar*picture,uchar*copyArray,int row, int col);
 
 
 const long long tickValue = 50;
@@ -28,21 +21,17 @@ QImage ImageEffectsController::getImage() const
     return image;
 }
 
-QString ImageEffectsController::getLastDir() const
-{
-    qDebug() << dir.path();
-    return dir.path();
-}
-
-
 void ImageEffectsController::setDir(const QDir &newDir)
 {
-    dir = newDir;
+    fileinfo->setDir(newDir);
 }
 
-QString ImageEffectsController::getFileName() const
+QString ImageEffectsController::getCurrentPath()
 {
-    return fileName;
+    if(fileinfo == nullptr){
+        return QDir::homePath();
+    }
+    return fileinfo->getCurrentFilePath();
 }
 
 void ImageEffectsController::setupEffect(QString name,QString description,_Func func,QKeySequence key)
@@ -58,7 +47,13 @@ void ImageEffectsController::setupEffect(QString name,QString description,_Func 
     Effect* effect = popaBuilder->build();
     emit addAction(effect->action);//in MainWindow
     connect(effect->action,&QAction::triggered,this,[this,effect](){
+
+        if(states.size()>=maxbackups){
+            states.pop_front();
+            emit deleteFirstInChain();
+        }
         states.push_back(image.copy());
+
         col = image.bytesPerLine();
         row = image.sizeInBytes()/col;
         effect->func(image.bits(),states.last().bits(),row,col);
@@ -88,9 +83,7 @@ ImageEffectsController::ImageEffectsController(QObject *parent)
     dir = QDir::home();
     isImageDirty = false;
     passed = new QTimer(this);
-    // setupEffects();
     connect(passed, &QTimer::timeout, this,&ImageEffectsController::editColors);
-    // Запускаем таймер (1000 мс = 1 сек)
     passed->start(tickValue);
 }
 
@@ -102,7 +95,7 @@ void ImageEffectsController::setRed(int value)
 
 void ImageEffectsController::editColors(){
     if(isImageDirty){
-        int size = row*col;
+        int size = image.sizeInBytes();
         //FirstEditColors
         if(isEditColors == false){
             states.push_back(image);
@@ -116,10 +109,6 @@ void ImageEffectsController::editColors(){
     }
 }
 
-void ImageEffectsController::applyEffect()
-{
-
-}
 
 void ImageEffectsController::undo()
 {
@@ -128,6 +117,7 @@ void ImageEffectsController::undo()
     }
     if(isEditColors == true){
         isEditColors = false;
+        emit zeroScrollers();
     }
     image = states.last();
     states.pop_back();
@@ -156,13 +146,14 @@ void ImageEffectsController::setOpacity(int value)
 
 bool ImageEffectsController::loadImage(QString filename)
 {
-
+    reset();
     QFileInfo fileInfo(filename);
 
     this->dir = QDir(fileInfo.absoluteDir());
     fileName = fileInfo.fileName();
     qDebug()<<"dir: "<<dir;
     qDebug()<<"file: "<<fileName;
+    fileinfo = std::make_unique<FileInfo>(dir,filename);
     image.load(filename);
     image.convertTo(QImage::Format_ARGB32);//A R G B
 
@@ -189,6 +180,56 @@ bool ImageEffectsController::saveImage(QString filepath)
     bool usp = image.save(filepath);
     qDebug()<<usp;
     return usp;
+}
+
+void ImageEffectsController::reset()
+{
+    states.clear();
+    emit deleteAllInChain();
+}
+
+void ImageEffectsController::rotateLeft()
+{
+    if(states.size()>=maxbackups){
+        states.pop_front();
+        emit deleteFirstInChain();
+    }
+    states.push_back(image.copy());
+    col = image.width();
+    row = image.height();
+    image = QImage(image.height(),image.width(),QImage::Format_ARGB32);
+
+    qDebug() << row<<col;
+    RotateLeft(image.bits(),states.last().bits(),image.width(),image.height());
+    emit addEffect("Rotated 90 left");
+    qDebug()<<image.format();
+    emit imageChanged();
+    if(isEditColors == true){
+        emit zeroScrollers();
+        isEditColors = false;
+        rgba = RGBA(0,0,0,0);
+    }
+}
+
+void ImageEffectsController::rotateRight()
+{
+    if(states.size()>=maxbackups){
+        states.pop_front();
+        emit deleteFirstInChain();
+    }
+    states.push_back(image.copy());
+    col = image.height()*4;
+    row = image.width()*4;
+    image = QImage(image.height(),image.width(),QImage::Format_ARGB32);
+
+    RotateRight(image.bits(),states.last().bits(),image.width(),image.height());
+    emit addEffect("Rotated 90 right");
+    emit imageChanged();
+    if(isEditColors == true){
+        emit zeroScrollers();
+        isEditColors = false;
+        rgba = RGBA(0,0,0,0);
+    }
 }
 ImageEffectsController::~ImageEffectsController() {
     for (auto i : effects) {

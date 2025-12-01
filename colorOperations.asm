@@ -5,6 +5,9 @@ global AdjustColors
 global GrayScale
 global Blur
 global Inversion
+global RotateLeft
+global RotateRight
+
 
 default rel
 
@@ -248,10 +251,20 @@ push rcx
 push rdx
 imul rcx,rdx ;size
 xor rdx,rdx
+shr rcx,2
 inv_loop:
 mov dl,255
 sub dl,byte [rdi]
 mov byte [rdi],dl
+inc rdi
+mov dl,255
+sub dl,byte [rdi]
+mov byte [rdi],dl
+inc rdi
+mov dl,255
+sub dl,byte [rdi]
+mov byte [rdi],dl
+inc rdi
 inc rdi
 loop inv_loop
 
@@ -260,3 +273,114 @@ pop rcx
 pop rdi
 ret
 
+;uchar*array - rdi, uchar* - rsi = not changed, int row - rdx, col - rcx
+RotateLeft2:
+push rdi
+push rsi
+push rdx
+push rcx
+push rax
+push rbx
+
+mov rbx,rcx ;col in size, not byte
+mov rax,rdx ;row in size
+
+xor r8,r8
+xor rdx,rdx
+
+mov rcx,rax
+rl_outer_loop:
+push rcx
+mov rcx,rbx
+    rl_inner_loop:
+    mov r8,[rsi]
+    add rdi,4
+    add rsi,4
+
+    loop rl_inner_loop
+pop rcx
+loop rl_outer_loop
+
+pop rbx
+pop rax
+pop rcx
+pop rdx
+pop rsi
+pop rdi
+ret
+
+RotateRight2:
+ret
+
+section .text
+global RotateRight
+global RotateLeft
+default rel
+
+RotateRight:
+    xor r8, r8
+.loop_y:
+    cmp r8, rdx
+    jge .finished
+
+    xor r9, r9
+.loop_x:
+    cmp r9, rcx
+    jge .next_line
+
+    mov rax, rdx
+    dec rax
+    sub rax, r8
+
+    mov r10, r9
+    imul r10, rdx
+    add rax, r10
+    shl rax, 2
+
+    mov r11d, dword [rsi]
+    mov dword [rdi + rax], r11d
+
+    add rsi, 4
+    inc r9
+    jmp .loop_x
+
+.next_line:
+    inc r8
+    jmp .loop_y
+
+.finished:
+    ret
+
+
+RotateLeft:
+    xor r8, r8
+.loop_y:
+    cmp r8, rdx
+    jge .finished
+
+    xor r9, r9
+.loop_x:
+    cmp r9, rcx
+    jge .next_line
+
+    mov rax, rcx
+    dec rax
+    sub rax, r9
+
+    imul rax, rdx
+    add rax, r8
+    shl rax, 2
+
+    mov r11d, dword [rsi]
+    mov dword [rdi + rax], r11d
+
+    add rsi, 4
+    inc r9
+    jmp .loop_x
+
+.next_line:
+    inc r8
+    jmp .loop_y
+
+.finished:
+    ret

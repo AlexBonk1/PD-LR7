@@ -74,7 +74,7 @@ void ScrollersWidget::addEffect(QString effectName)
 
 void ScrollersWidget::removeEffect()
 {
-    listWidget->pop();
+    listWidget->pop_back();
 }
 
 void ScrollersWidget::zeroScrollers()
@@ -83,4 +83,14 @@ void ScrollersWidget::zeroScrollers()
     greenScaleBox->zeroSlider();
     blueScaleBox->zeroSlider();
     brightnessBox->zeroSlider();
+}
+
+void ScrollersWidget::deleteFirstEffect()
+{
+    listWidget->pop_front();
+}
+
+void ScrollersWidget::deleteAllEffects()
+{
+    listWidget->clear();
 }

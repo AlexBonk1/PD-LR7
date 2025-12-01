@@ -1,6 +1,5 @@
 #pragma once
 
-#include "actionmanager.h"
 #include <QWidget>
 #include <qboxlayout.h>
 #include <qlabel.h>
@@ -8,7 +7,9 @@
 #include<QMouseEvent>
 #include<QKeyEvent>
 #include<QScrollEvent>
+#include<QLineEdit>
 
+#include "iactionmanager.h"
 
 enum class EditMode{
     Scale,
@@ -24,6 +25,7 @@ class ContentWidget : public QWidget
     Q_OBJECT
 ///UI
 private:
+    QLineEdit* percentages;
     void setupUi();
     void setupConnections();
     QImage image;
